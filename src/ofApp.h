@@ -39,9 +39,11 @@ class ofApp : public ofBaseApp{
     float eTimef = 0.0;
 
     ofxFloatSlider threshold;
+    ofxFloatSlider moveThreshold;
+    ofxFloatSlider bgCol;
     ofxPanel gui;
+    ofxButton showImg;
 
-    bool imgOn = false;
     vector		<shared_ptr<ofxBox2dCircle> >	circles;
     vector <ofPolyline> edgeLines;
 
@@ -49,15 +51,16 @@ class ofApp : public ofBaseApp{
     int camWidth = 640;
     int camHeight = 480;
     //int cropW = 270;  //if camWidth is 320, 135
-    int cropW = 640;
+    int cropW = 270;
 
     int maxParticles = 15000;
     int particleRadius = 2;
 
     int intervalSec = 30;
-    int bgCol = 255;
 
+    //sound
     ofSoundPlayer bgm;
+    ofSoundPlayer se;
 
     //FlowToolsConfig
     ofFbo cameraFbo;
@@ -71,10 +74,10 @@ class ofApp : public ofBaseApp{
     ftParticleFlow			particleFlow;
 
     float deltaTime;
-    float lastTime;
 
     int windowWidth, windowHeight, densityWidth, densityHeight, simulationWidth, simulationHeight;
-
     int sceneNum = 3;
     int scene = 0;
+    int dSec = 30;
+    int lastMove = 0;
 };

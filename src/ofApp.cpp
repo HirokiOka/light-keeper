@@ -6,23 +6,18 @@
 //Mac: 2560*1600
 //--------------------------------------------------------------
 void ofApp::setup(){
-
-  //ofBackground(0);
-  //ofEnableBlendMode(OF_BLENDMODE_SCREEN);
-	//ofEnableAlphaBlending();
   ofSetVerticalSync(true);
-  ofLog(OF_LOG_NOTICE, "width:" + ofToString(ofGetWidth()));
-  ofLog(OF_LOG_NOTICE, "height:" + ofToString(ofGetHeight()));
 
   //init GUI
   gui.setup();
   gui.add(threshold.setup("threshold", 40, 10, 255));
+  gui.add(moveThreshold.setup("move threshold", 30, 0, 100));
+  gui.add(bgCol.setup("background", 0, 0, 255));
+  gui.add(showImg.setup("show image", 20, 20));
 
   //init VideoGrabber
   vidGrabber.setDeviceID(1);
   vidGrabber.setup(camWidth, camHeight, true);
-  ofLog(OF_LOG_NOTICE, "vid width:" + ofToString(vidGrabber.getWidth()));
-  ofLog(OF_LOG_NOTICE, "vid height:" + ofToString(vidGrabber.getHeight()));
 
   colorImg.allocate(camWidth ,camHeight);
   grayImg.allocate(cropW, camHeight);
@@ -48,13 +43,22 @@ void ofApp::setup(){
   for(int i=0; i<maxParticles; i++) {
     particleSystem.addParticle(colorImg.width/4 + ofRandom(-20, 20), ofRandom(-50, 50));
   }
+  particleSystem.setParticleType(12);
 
   //Init sound
   bgm.load("ambient.wav");
   bgm.setLoop(true);
+  bgm.setMultiPlay(true);
+  bgm.setVolume(2.0);
   bgm.play();
 
+  se.load("piano_s.mp3");
+  se.setVolume(0.1);
+  se.setMultiPlay(true);
+
   //Init flowTools
+  /*
+  */
   densityWidth = 1280;
   densityHeight = 720;
 
@@ -70,7 +74,7 @@ void ofApp::setup(){
 	temperatureBridgeFlow.setup(simulationWidth, simulationHeight);
 	fluidFlow.setup(simulationWidth, simulationHeight, densityWidth, densityHeight);
   fluidFlow.setSpeed(0.04);
-  fluidFlow.setVorticity(0.4);
+  fluidFlow.setVorticity(0.01);
   fluidFlow.setDissipationVel(2);
   fluidFlow.setDissipationDen(0.2);
 	particleFlow.setup(simulationWidth, simulationHeight, densityWidth, densityHeight);
@@ -83,7 +87,7 @@ void ofApp::setup(){
 
   for (auto flow : flows) { flow->setVisualizationFieldSize(glm::vec2(simulationWidth / 2, simulationHeight / 2)); }
 
-  cameraFbo.allocate(camWidth, camHeight);
+  cameraFbo.allocate(cropW, camHeight);
   ftUtil::zero(cameraFbo);
 }
 
@@ -92,15 +96,20 @@ void ofApp::update(){
   float dt = 1.0 / max(ofGetFrameRate(), 1.f);
   eTimef = ofGetElapsedTimef();
 
+  //scene change
+  int cond = (int)eTimef % (dSec * sceneNum);
+  if (cond < dSec) {
+    scene = 0;
+  } else if (dSec < cond && cond < dSec * 2) {
+    scene = 1;
+  } else if (dSec * 2 < cond){
+    scene = 2;
+  }
+
   box2d.update();
   vidGrabber.update();
 
-
   if (vidGrabber.isFrameNew()) {
-    cameraFbo.begin();
-    vidGrabber.draw(cameraFbo.getWidth(), 0, -cameraFbo.getWidth(), cameraFbo.getHeight());
-    cameraFbo.end();
-    opticalFlow.setInput(cameraFbo.getTexture());
 
     renderImg.setFromPixels(vidGrabber.getPixels());
     renderImg.mirror(false, true);
@@ -126,7 +135,13 @@ void ofApp::update(){
         contourCircles.push_back(circle);
       }
     }
+    cameraFbo.begin();
+    //vidGrabber.draw(cameraFbo.getWidth(), 0, -cameraFbo.getWidth(), cameraFbo.getHeight());
+    renderImg.draw(0, 0);
+    cameraFbo.end();
+    opticalFlow.setInput(cameraFbo.getTexture());
   }
+
   for(int i = 0; i< contourFinder.nBlobs; i++){
     ofPolyline line;
     for(int j =0; j<contourFinder.blobs[i].pts.size(); j++){
@@ -150,42 +165,69 @@ void ofApp::update(){
 	fluidFlow.addDensity(densityBridgeFlow.getDensity());
 	fluidFlow.addTemperature(temperatureBridgeFlow.getTemperature());
   fluidFlow.update(dt);
+
+  float dSum = 0;
+  int totalVertices = 0;
+  for(int i = 0; i < edgeLines.size(); i++) {
+    totalVertices += edgeLines[i].getVertices().size();
+    for (int j = 0; j < edgeLines[i].getVertices().size(); j++) {
+      float x = edgeLines[i].getVertices()[j].x;
+      float y = edgeLines[i].getVertices()[j].y;
+      float dist = sqrt(x * x + y * y);
+      dSum += dist;
+    }
+  }
+  int move = (int)dSum / totalVertices;
+  int moveDiff = abs(move - lastMove);
+  lastMove = move;
+
+  if (eTimef > 1.0 && moveDiff > moveThreshold) {
+    array<float, 5> a = {0.2, 0.4, 0.6, 0.8, 1.0};
+    //array<float, 5> a = {0.1, 0.3, 0.5, 0.7, 0.9};
+    int idx = (int)ofRandom(0, a.size());
+    se.setSpeed(a[idx]);
+    se.play();
+  }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-  ofBackground(0);
-  ofSetColor(255);
-  bgCol = 255 * abs(sin(eTimef * 0.2));
-  float brightness = ofMap((int)eTimef % intervalSec, 0, intervalSec-1, 0, 255);
+  ofBackground(bgCol);
+  //float brightness = ofMap((int)eTimef % intervalSec, 0, intervalSec-1, 0, 255);
 
+  ofPushMatrix();
+  ofScale((float)ofGetWidth() / (float)colorImg.width, (float)ofGetHeight() / (float)colorImg.height);
+  if (showImg) colorImg.draw(0, 0);
   if (scene == 0) {
-    ofPushMatrix();
-    ofScale((float)ofGetWidth() / (float)colorImg.width, (float)ofGetHeight() / (float)colorImg.height);
-    if (imgOn) colorImg.draw(0, 0);
     particleSystem.updateMesh();
     ofPushStyle();
     float hue = abs(sin(eTimef  * 0.2)) * 255;
     ofColor sCol = ofColor(0);
-    //sCol.setHsb(140, 255, 255);
     sCol.setHsb(hue, 255, 255);
     ofSetColor(sCol);
     particleSystem.draw();
 
     ofColor hCol = ofColor(0);
-    //hCol.setHsb(40, 255, 255);
     hCol.setHsb(abs(int(hue) - 100) % 255, 255, 255);
     ofSetColor(hCol);
-    for(int cnt = 0; cnt< edgeLines.size(); cnt++) edgeLines[cnt].draw();
+
+    for(int i = 0; i < edgeLines.size(); i++) edgeLines[i].draw();
     ofPopStyle();
     /*
     contourFinder.draw();
     for (size_t i=0; i<contourCircles.size(); i++) contourCircles[i]->draw();
     */
     ofPopMatrix();
+
   } else if (scene == 1) {
-    ofPushMatrix();
-    ofScale((float)ofGetWidth() / (float)colorImg.width, (float)ofGetHeight() / (float)colorImg.height);
+    //ofClear(0, 0);
+    ofPushStyle();
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    //cameraFbo.draw(0, 0, windowWidth, windowHeight);
+    fluidFlow.draw(0, 0, cropW, camHeight);
+    ofPopStyle();
+
+  } else if (scene == 2) {
     float tFac = abs(sin(ofGetElapsedTimef()) * 0.8) + 1;
     ofPixels pixels = colorImg.getPixels();
     for (int j = 0; j < camHeight; j+=rectSize) {
@@ -204,17 +246,17 @@ void ofApp::draw(){
 
       }
     }
-    ofPopMatrix();
-  } else {
-    ofClear(0, 0);
-    ofPushStyle();
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    //cameraFbo.draw(0, 0, windowWidth, windowHeight);
-    fluidFlow.draw(0, 0, windowWidth, windowHeight);
-    ofPopStyle();
+  }
+  ofPopMatrix();
+
+  if (debugMode) {
+    ofDrawBitmapStringHighlight("windowWidth: " + ofToString(ofGetWidth()), 10, 20, ofColor::black, ofColor::white);
+    ofDrawBitmapStringHighlight("windowHeight: " + ofToString(ofGetHeight()), 10, 40, ofColor::black, ofColor::white);
+    ofDrawBitmapStringHighlight("vidWidth: " + ofToString(vidGrabber.getWidth()), 10, 60, ofColor::black, ofColor::white);
+    ofDrawBitmapStringHighlight("vidHeight: " + ofToString(vidGrabber.getHeight()), 10, 80, ofColor::black, ofColor::white);
+    gui.draw();
   }
 
-  if (debugMode) gui.draw();
 }
 
 //--------------------------------------------------------------
@@ -225,16 +267,6 @@ void ofApp::keyPressed(int key){
       break;
     case 'd':
       debugMode = !debugMode;
-      break;
-    case 'i':
-      imgOn = !imgOn;
-      break;
-    case 'b':
-      if (bgCol == 255) {
-        bgCol = 0;
-      } else {
-        bgCol = 255;
-      }
       break;
     case 'g':
       if (hasGravity) {
