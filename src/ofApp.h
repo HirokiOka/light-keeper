@@ -47,7 +47,7 @@ class ofApp : public ofBaseApp{
     vector		<shared_ptr<ofxBox2dCircle> >	circles;
     vector <ofPolyline> edgeLines;
 
-    int rectSize = 16;
+    int rectSize = 8;
     int camWidth = 640;
     int camHeight = 480;
     //int cropW = 270;  //if camWidth is 320, 135

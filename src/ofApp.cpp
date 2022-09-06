@@ -1,7 +1,5 @@
 #include "ofApp.h"
-
 //Target: 1080 * 1920
-//135, 240
 //9: 16
 //Mac: 2560*1600
 //--------------------------------------------------------------
@@ -49,16 +47,14 @@ void ofApp::setup(){
   bgm.load("ambient.wav");
   bgm.setLoop(true);
   bgm.setMultiPlay(true);
-  bgm.setVolume(2.0);
+  bgm.setVolume(4.0);
   bgm.play();
 
   se.load("piano_s.mp3");
-  se.setVolume(0.1);
+  se.setVolume(0.4);
   se.setMultiPlay(true);
 
   //Init flowTools
-  /*
-  */
   densityWidth = 1280;
   densityHeight = 720;
 
@@ -123,7 +119,9 @@ void ofApp::update(){
     grayDiff.absDiff(grayBg, grayImg);
     grayDiff.threshold(threshold);
     contourFinder.findContours(grayDiff, 20, (colorImg.width*colorImg.height)/ 3, 10, false);
-    for (int i = 0; i < contourCircles.size(); i++) contourCircles[i]->destroy();
+    for (int i = 0; i < contourCircles.size(); i++) {
+      contourCircles[i]->destroy();
+    }
 
     contourCircles.clear();
     edgeLines.clear();
@@ -220,7 +218,7 @@ void ofApp::draw(){
     ofPopMatrix();
 
   } else if (scene == 1) {
-    //ofClear(0, 0);
+    ofClear(0, 0);
     ofPushStyle();
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     //cameraFbo.draw(0, 0, windowWidth, windowHeight);
@@ -240,6 +238,7 @@ void ofApp::draw(){
         float hue = (r + g + b) / 3 * tFac;
         ofColor rCol = ofColor(0);
         rCol.setHsb(hue, 200, 255);
+        rCol.set(hue);
         ofSetColor(rCol);
         ofDrawRectangle(i, j, rectSize, rectSize);
         ofPopStyle();
