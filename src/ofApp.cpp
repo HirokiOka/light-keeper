@@ -44,10 +44,10 @@ void ofApp::setup(){
   particleSystem.setParticleType(12);
 
   //Init sound
-  bgm.load("ambient.wav");
+  bgm.load("ambient_bgm.wav");
   bgm.setLoop(true);
   bgm.setMultiPlay(true);
-  bgm.setVolume(4.0);
+  bgm.setVolume(2.0);
   bgm.play();
 
   se.load("piano_s.mp3");
@@ -69,10 +69,12 @@ void ofApp::setup(){
 	densityBridgeFlow.setup(simulationWidth, simulationHeight, densityWidth, densityHeight);
 	temperatureBridgeFlow.setup(simulationWidth, simulationHeight);
 	fluidFlow.setup(simulationWidth, simulationHeight, densityWidth, densityHeight);
-  fluidFlow.setSpeed(0.04);
-  fluidFlow.setVorticity(0.01);
-  fluidFlow.setDissipationVel(2);
-  fluidFlow.setDissipationDen(0.2);
+  fluidFlow.setSpeed(0.1);
+  fluidFlow.setDissipationVel(0.1);
+  fluidFlow.setDissipationDen(0.6);
+  fluidFlow.setVorticity(0.8);
+  /*
+  */
 	particleFlow.setup(simulationWidth, simulationHeight, densityWidth, densityHeight);
 
 	flows.push_back(&velocityBridgeFlow);
@@ -93,6 +95,7 @@ void ofApp::update(){
   eTimef = ofGetElapsedTimef();
 
   //scene change
+  /*
   int cond = (int)eTimef % (dSec * sceneNum);
   if (cond < dSec) {
     scene = 0;
@@ -101,6 +104,7 @@ void ofApp::update(){
   } else if (dSec * 2 < cond){
     scene = 2;
   }
+  */
 
   box2d.update();
   vidGrabber.update();
@@ -175,11 +179,11 @@ void ofApp::update(){
       dSum += dist;
     }
   }
-  int move = (int)dSum / totalVertices;
-  int moveDiff = abs(move - lastMove);
-  lastMove = move;
+  momentum = (int)dSum / totalVertices;
+  momDiff = abs(momentum - lastMomentum);
+  lastMomentum = momentum;
 
-  if (eTimef > 1.0 && moveDiff > moveThreshold) {
+  if (eTimef > 1.0 && momDiff > moveThreshold) {
     array<float, 5> a = {0.2, 0.4, 0.6, 0.8, 1.0};
     //array<float, 5> a = {0.1, 0.3, 0.5, 0.7, 0.9};
     int idx = (int)ofRandom(0, a.size());
@@ -192,37 +196,37 @@ void ofApp::update(){
 void ofApp::draw(){
   ofBackground(bgCol);
   //float brightness = ofMap((int)eTimef % intervalSec, 0, intervalSec-1, 0, 255);
+  float hue = abs(sin(eTimef  * 0.2)) * 255;
 
   ofPushMatrix();
   ofScale((float)ofGetWidth() / (float)colorImg.width, (float)ofGetHeight() / (float)colorImg.height);
+
   if (showImg) colorImg.draw(0, 0);
   if (scene == 0) {
     particleSystem.updateMesh();
     ofPushStyle();
-    float hue = abs(sin(eTimef  * 0.2)) * 255;
     ofColor sCol = ofColor(0);
     sCol.setHsb(hue, 255, 255);
     ofSetColor(sCol);
     particleSystem.draw();
-
     ofColor hCol = ofColor(0);
     hCol.setHsb(abs(int(hue) - 100) % 255, 255, 255);
     ofSetColor(hCol);
-
     for(int i = 0; i < edgeLines.size(); i++) edgeLines[i].draw();
     ofPopStyle();
     /*
     contourFinder.draw();
     for (size_t i=0; i<contourCircles.size(); i++) contourCircles[i]->draw();
     */
-    ofPopMatrix();
+    //ofPopMatrix();
 
   } else if (scene == 1) {
-    ofClear(0, 0);
+    //ofClear(0, 0);
     ofPushStyle();
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    //ofEnableBlendMode(OF_BLENDMODE_DISABLED);
     //cameraFbo.draw(0, 0, windowWidth, windowHeight);
     fluidFlow.draw(0, 0, cropW, camHeight);
+    //for(int i = 0; i < edgeLines.size(); i++) edgeLines[i].draw();
     ofPopStyle();
 
   } else if (scene == 2) {
@@ -233,16 +237,13 @@ void ofApp::draw(){
         unsigned char r = pixels[(j * cropW + i) * 3];
         unsigned char g = pixels[(j * cropW + i) * 3 + 1];
         unsigned char b = pixels[(j * cropW + i) * 3 + 2];
-
         ofPushStyle();
-        float hue = (r + g + b) / 3 * tFac;
+        float hue3 = (r + g + b) / 3 * tFac;
         ofColor rCol = ofColor(0);
-        rCol.setHsb(hue, 200, 255);
-        rCol.set(hue);
+        rCol.setHsb(hue3, 200, 255);
         ofSetColor(rCol);
         ofDrawRectangle(i, j, rectSize, rectSize);
         ofPopStyle();
-
       }
     }
   }
@@ -253,6 +254,7 @@ void ofApp::draw(){
     ofDrawBitmapStringHighlight("windowHeight: " + ofToString(ofGetHeight()), 10, 40, ofColor::black, ofColor::white);
     ofDrawBitmapStringHighlight("vidWidth: " + ofToString(vidGrabber.getWidth()), 10, 60, ofColor::black, ofColor::white);
     ofDrawBitmapStringHighlight("vidHeight: " + ofToString(vidGrabber.getHeight()), 10, 80, ofColor::black, ofColor::white);
+    ofDrawBitmapStringHighlight("momDiff: " + ofToString(momDiff), 10, 100, ofColor::black, ofColor::white);
     gui.draw();
   }
 

@@ -79,5 +79,7 @@ class ofApp : public ofBaseApp{
     int sceneNum = 3;
     int scene = 0;
     int dSec = 30;
-    int lastMove = 0;
+    int momentum = 0;
+    int lastMomentum = 0;
+    int momDiff = 0;
 };
