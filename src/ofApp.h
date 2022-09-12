@@ -41,13 +41,13 @@ class ofApp : public ofBaseApp{
     ofxFloatSlider threshold;
     ofxFloatSlider moveThreshold;
     ofxFloatSlider bgCol;
+    ofxIntSlider pixSize;
     ofxPanel gui;
     ofxButton showImg;
 
     vector		<shared_ptr<ofxBox2dCircle> >	circles;
     vector <ofPolyline> edgeLines;
 
-    int rectSize = 8;
     int camWidth = 640;
     int camHeight = 480;
     //int cropW = 270;  //if camWidth is 320, 135
@@ -60,7 +60,9 @@ class ofApp : public ofBaseApp{
 
     //sound
     ofSoundPlayer bgm;
-    ofSoundPlayer se;
+    ofSoundPlayer se_harmo;
+    ofSoundPlayer se_bass;
+    ofSoundPlayer glitch_bass_g;
 
     //FlowToolsConfig
     ofFbo cameraFbo;
@@ -76,7 +78,7 @@ class ofApp : public ofBaseApp{
     float deltaTime;
 
     int windowWidth, windowHeight, densityWidth, densityHeight, simulationWidth, simulationHeight;
-    int sceneNum = 3;
+    int sceneNum = 4;
     int scene = 0;
     int dSec = 30;
     int momentum = 0;
