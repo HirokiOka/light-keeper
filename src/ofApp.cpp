@@ -83,8 +83,7 @@ void ofApp::setup(){
   fluidFlow.setDissipationVel(0.1);
   fluidFlow.setDissipationDen(0.1);
   fluidFlow.setVorticity(1.0);
-  /*
-  */
+
 	particleFlow.setup(simulationWidth, simulationHeight, densityWidth, densityHeight);
 
 	flows.push_back(&velocityBridgeFlow);

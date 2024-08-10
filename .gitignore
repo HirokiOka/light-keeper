@@ -1,0 +1,6 @@
+.DS_Store
+.cache/
+bin/
+compile_commands.json
+obj/
+Makefile
